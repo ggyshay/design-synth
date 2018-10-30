@@ -1,0 +1,12 @@
+/* body {
+    background: linear-gradient(235.78deg, #FF8963 11.66%, rgba(255, 255, 255, 0) 97.68%), #F673AA;
+} */
+
+#canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+}
