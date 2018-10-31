@@ -20,7 +20,7 @@ export class Slider extends React.Component<SliderProps, any>{
         return (
             <div>
                 <input type="range" min={this.props.min} max={this.props.max} value={this.props.value || this.state.value}
-                    className="slider" onChange={this.handleChange} style={{transform: this.props.vertical ? 'rotate(90deg) translateX(4rem)' : ''}}/>
+                    className="slider" onChange={this.handleChange} style={{ transform: this.props.vertical ? 'rotate(90deg) translateX(4rem)' : '' }} />
             </div>
         )
     }

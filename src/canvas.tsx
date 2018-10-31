@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { BackgroundMenu, Circle, Square, Triangle } from './components';
+import { BackgroundMenu, Circle, Square, Triangle, AudioEngine } from './components';
 import './App.css'
+import { SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION } from 'constants';
+import { shape } from 'prop-types';
 
 export interface CanvasState {
     square: {
@@ -15,13 +17,16 @@ export interface CanvasState {
     },
     draggingPoint: { x: number, y: number },
     draggingId: string,
-    bgValues: { 1?: number, 2?: number, 3?: number }
+    bgValues: { 0?: number, 1?: number, 2?: number },
+    selectedId: string;
 }
 
 export class Canvas extends React.Component<any, CanvasState> {
+    private engine: AudioEngine;
+
     constructor(props) {
         super(props);
-
+        this.engine = new AudioEngine();
         this.state = {
             square: {
                 x: 20,
@@ -35,38 +40,57 @@ export class Canvas extends React.Component<any, CanvasState> {
             },
             draggingPoint: { x: null, y: null },
             draggingId: null,
-            bgValues: { 1: null, 2: null, 3: null }
+            bgValues: { 0: 0, 1: 0, 2: 0 },
+            selectedId: ''
         }
+    }
+
+    componentDidMount() {
+        this.engine.setup();
     }
     render() {
         return (
             <div onMouseUp={this.handleMouseUp} id='canvas' style={{ backgroundImage: this.bgGradient }}>
-                <Square size={160} handleDragStart={this.handleDragStart} id={Shapes.square} x={this.state.square.x} y={this.state.square.y} />
-                <Triangle size={160} handleDragStart={this.handleDragStart} id={Shapes.triangle} x={this.state.triangle.x} y={this.state.triangle.y} />
-                <Circle size={80} handleDragStart={this.handleDragStart} id={Shapes.circle} x={this.state.circle.x} y={this.state.circle.y} />
+                <Square size={160} handleDragStart={this.handleDragStart} id={Shapes.square}
+                    x={this.state.square.x} y={this.state.square.y} selected={this.state.selectedId === Shapes.square}
+                    handleClick={this.selectShape} />
+                <Triangle size={160} handleDragStart={this.handleDragStart} id={Shapes.triangle}
+                    x={this.state.triangle.x} y={this.state.triangle.y} selected={this.state.selectedId === Shapes.triangle}
+                    handleClick={this.selectShape} />
+                <Circle size={80} handleDragStart={this.handleDragStart} id={Shapes.circle}
+                    x={this.state.circle.x} y={this.state.circle.y} selected={this.state.selectedId === Shapes.circle}
+                    handleClick={this.selectShape} />
                 <BackgroundMenu handleParamChange={this.handleBackgroundChanges} />
             </div>
         )
     }
 
     get bgGradient() {
-        const j = `linear-gradient(to bottom right, hsl(${this.state.bgValues[0] || 0}, 100%, ${this.state.bgValues[2] || 0}%), hsl(${this.state.bgValues[1] || 0}, 100%, ${this.state.bgValues[2] || 0}%))`
-        // const j = `linear-gradient(235.78deg, rgba(${this.state.bgValues[0] || 0}, 100, ${this.state.bgValues[2] || 0}) 11.66%, rgba(255, 255, 255, 0) 97.68%), rgba(${this.state.bgValues[1] || 0}, 100, ${this.state.bgValues[2] || 0})`
-        console.log(j);
-        return j
+        return `linear-gradient(to bottom right, hsl(${this.state.bgValues[0] || 0}, 100%, ${this.state.bgValues[2] || 0}%), hsl(${this.state.bgValues[1] || 0}, 100%, ${this.state.bgValues[2] || 0}%))`
     }
 
     handleBackgroundChanges = (id: string, value: number) => {
         switch (id) {
             case '0':
                 this.setState(state => { return { bgValues: { ...state.bgValues, 0: value } } });
+                this.engine.changeParam('detune', Math.abs(this.state.bgValues[1] - value) / 360);
                 break;
             case '1':
                 this.setState(state => { return { bgValues: { ...state.bgValues, 1: value } } });
+                this.engine.changeParam('detune', Math.abs(value - this.state.bgValues[0]) / 360);
                 break;
             case '2':
                 this.setState(state => { return { bgValues: { ...state.bgValues, 2: value } } });
+                this.engine.changeParam('baseFrequency', value * 10);
                 break;
+        }
+    }
+
+    selectShape = (id: string) => {
+        if (this.state.selectedId === id) {
+            this.setState({ selectedId: '' })
+        } else {
+            this.setState({ selectedId: id });
         }
     }
 
@@ -80,12 +104,17 @@ export class Canvas extends React.Component<any, CanvasState> {
         switch (this.state.draggingId) {
             case Shapes.square:
                 this.setState({ square: { x: e.pageX - x, y: e.pageY - y } });
+                this.engine.changeParam('cutoffFrequency', (e.pageX - x) * 18000 / window.innerWidth)
+                this.engine.changeParam('fltQ', (e.pageY - y) * 20 / window.innerHeight)
                 break;
             case Shapes.triangle:
                 this.setState({ triangle: { x: e.pageX - x, y: e.pageY - y } });
+                this.engine.changeParam('noiseGain', (e.pageX - x) * 4 / window.innerWidth)
                 break;
             case Shapes.circle:
                 this.setState({ circle: { x: e.pageX - x, y: e.pageY - y } });
+                this.engine.changeParam('reverbWet', (e.pageX - x) / window.innerWidth)
+                this.engine.changeParam('distortion', Math.abs(e.pageY - y) * 400 / window.innerHeight)
                 break;
         }
     }
