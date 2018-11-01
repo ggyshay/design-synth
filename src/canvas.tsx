@@ -114,7 +114,7 @@ export class Canvas extends React.Component<any, CanvasState> {
             case Shapes.circle:
                 this.setState({ circle: { x: e.pageX - x, y: e.pageY - y } });
                 this.engine.changeParam('reverbWet', (e.pageX - x) / window.innerWidth)
-                this.engine.changeParam('distortion', Math.abs(e.pageY - y) * 400 / window.innerHeight)
+                this.engine.changeParam('distortion', Math.abs(e.pageY - y) / window.innerHeight)
                 break;
         }
     }

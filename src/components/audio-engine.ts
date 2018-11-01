@@ -16,6 +16,8 @@ export class AudioEngine {
     private filterLfoG: GainNode;
     private reverb: Reverb;
     private distortion: WaveShaperNode;
+    private distortionWet: GainNode;
+    private distortionDry: GainNode;
 
     private params = {
         baseFrequency: 167,
@@ -26,7 +28,7 @@ export class AudioEngine {
         noiseGain: 0.3,
         fltQ: 0.5,
         reverbWet: 0.1,
-        distortion: 10
+        distortion: 1
     }
 
 
@@ -53,7 +55,8 @@ export class AudioEngine {
         this.setupAudioBufferNode();
         this.reverb = Reverb(this.ctx);
         this.distortion = new WaveShaperNode(this.ctx);
-
+        this.distortionWet = new GainNode(this.ctx);
+        this.distortionDry = new GainNode(this.ctx);
 
         this.setValues();
 
@@ -70,7 +73,10 @@ export class AudioEngine {
         this.noise.connect(this.noiseG);
         this.noiseG.connect(this.flt);
         this.flt.connect(this.distortion);
-        this.distortion.connect(this.reverb);
+        this.flt.connect(this.distortionDry);
+        this.distortion.connect(this.distortionWet);
+        this.distortionDry.connect(this.reverb);
+        this.distortionWet.connect(this.reverb);
         this.reverb.connect(this.ctx.destination);
 
         this.start();
@@ -95,7 +101,9 @@ export class AudioEngine {
         this.filterLfo.frequency.value = 0.2;
         this.filterLfoG.gain.value = this.params.cutoffFrequency / 5;
         this.flt.Q.value = this.params.fltQ;
-        this.distortion.curve = this.makeDistortionCurve(this.params.distortion);
+        this.distortion.curve = this.makeDistortionCurve(300);
+        this.distortionDry.gain.value = 1 - this.params.distortion;
+        this.distortionWet.gain.value = this.params.distortion * 1.2;
 
         this.reverb.wet.value = this.params.reverbWet;
         this.reverb.dry.value = 1 - this.params.reverbWet;
@@ -141,7 +149,6 @@ export class AudioEngine {
 
     changeParam = (param: string, value: number | string) => {
         if (this.params[param] !== null) {
-            console.log(param, value);
             this.params[param] = value;
             this.setValues();
         } else {
